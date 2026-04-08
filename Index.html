@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUH Station — Overtime Live Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --surface: #f7f8fa;
+    --surface2: #eef0f4;
+    --border: #e2e5eb;
+    --border2: #d0d4dd;
+    --accent: #1a3a5c;
+    --accent2: #2563a8;
+    --accent-light: #e8f0fb;
+    --accent-pale: #f0f5ff;
+    --text: #111827;
+    --text2: #4b5563;
+    --text3: #9ca3af;
+    --green: #0d6e4a;
+    --green-bg: #ecfdf5;
+    --red: #b91c1c;
+    --red-bg: #fef2f2;
+    --yellow: #92400e;
+    --yellow-bg: #fffbeb;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f0f2f7;
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--accent);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .header-logo svg { width: 20px; height: 20px; fill: white; }
+  .header-title {
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+  .header-sub {
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  /* LAYOUT */
+  .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
+
+  /* SECTION TITLES */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  /* PAYROLL PERIOD GRID */
+  .periods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .period-btn {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text2);
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow);
+    line-height: 1.4;
+  }
+  .period-btn:hover { border-color: var(--accent2); color: var(--accent2); background: var(--accent-pale); }
+  .period-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    box-shadow: 0 3px 10px rgba(26,58,92,0.3);
+  }
+  .period-month { font-size: 9px; opacity: 0.7; margin-top: 2px; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+
+  /* TWO-COLUMN LAYOUT */
+  .two-col { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* CARD */
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+  }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .card-body { padding: 20px; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--accent);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  thead th:first-child { border-radius: 0; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--accent-pale); }
+  tbody td { padding: 10px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12.5px; }
+  tbody td:first-child { font-family: 'DM Sans', sans-serif; color: var(--text2); font-weight: 500; }
+  .total-row td {
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    font-size: 12.5px;
+    padding: 11px 14px;
+  }
+  .total-row td:first-child { font-family: 'DM Sans', sans-serif; }
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text3);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+  /* STAT CARDS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--accent); }
+  .stat-card.grand { border-color: var(--accent); background: var(--accent); }
+  .stat-card.grand .stat-label { color: rgba(255,255,255,0.65); }
+  .stat-card.grand .stat-value { color: white; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text3); }
+  input[type="date"], input[type="number"], select {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--accent2); background: white; }
+  .submit-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.02em;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .submit-btn:hover { background: var(--accent2); }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { background: var(--border2); cursor: not-allowed; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--green); color: white;
+    padding: 12px 20px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-md);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { background: var(--red); }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text3);
+    margin-bottom: 18px;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+  .status-dot.ok { background: #22c55e; }
+  .status-dot.loading { background: #f59e0b; animation: pulse 1.5s infinite; }
+
+  .refresh-btn {
+    margin-left: auto;
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 10px; font-size: 11px; color: var(--text2);
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .period-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-light); color: var(--accent2);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace;
+  }
+
+  .no-period {
+    text-align: center; padding: 48px 20px;
+    color: var(--text3); font-size: 13px;
+  }
+  .no-period-icon { font-size: 32px; margin-bottom: 10px; }
+  .no-period strong { display: block; color: var(--text2); font-size: 14px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div>
+        <div class="header-title">RUH Station &mdash; Overtime Live Updates</div>
+        <div class="header-sub">GSE Workshop &middot; Overtime Tracker</div>
+      </div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- PAYROLL PERIODS -->
+  <div class="section-label">Payroll Periods</div>
+  <div class="periods-grid" id="payrollBoxes"></div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Select a payroll period to load data</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Motorized</div>
+      <div class="stat-value" id="totalMotorized">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Non-Motorized</div>
+      <div class="stat-value" id="totalNonMotorized">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Line Maint.</div>
+      <div class="stat-value" id="totalLine">—</div>
+    </div>
+    <div class="stat-card grand">
+      <div class="stat-label">Grand Total</div>
+      <div class="stat-value" id="grandTotal">—</div>
+    </div>
+  </div>
+
+  <!-- TWO COLUMN -->
+  <div class="two-col">
+
+    <!-- OT TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Daily Overtime Records</div>
+        <div id="periodIndicator" style="display:none;" class="period-indicator"></div>
+      </div>
+      <div id="tableContainer">
+        <div class="no-period">
+          <div class="no-period-icon">📋</div>
+          <strong>No period selected</strong>
+          Select a payroll period above to view records
+        </div>
+      </div>
+    </div>
+
+    <!-- MANUAL ENTRY -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Manual Entry</div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Date</label>
+            <input type="date" id="date">
+          </div>
+          <div class="form-group">
+            <label>Motorized</label>
+            <input type="number" id="motorized" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Non-Motorized</label>
+            <input type="number" id="nonMotorized" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Line Maintenance</label>
+            <input type="number" id="lineMaintenance" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Other</label>
+            <input type="number" id="other" placeholder="0" min="0">
+          </div>
+        </div>
+        <button class="submit-btn" id="submitBtn" onclick="submitOT()">Submit Entry</button>
+        <div id="selectedPeriodNote" style="margin-top:10px; font-size:11px; color:var(--text3); text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxh1C6nOqfgNq6jORQ1OT8wJm48jJQK1a-8fth48rgqWqVhC-fnGcrMHawcOSgtLUTk-g/exec";
+
+const PERIODS = [
+  "16 Mar–15 Apr","16 Apr–15 May","16 May–15 Jun",
+  "16 Jun–15 Jul","16 Jul–15 Aug","16 Aug–15 Sep",
+  "16 Sep–15 Oct","16 Oct–15 Nov","16 Nov–15 Dec",
+  "16 Dec–15 Jan","16 Jan–15 Feb","16 Feb–15 Mar"
+];
+
+let currentPeriod = '';
+
+function buildPeriodBoxes() {
+  const container = document.getElementById('payrollBoxes');
+  PERIODS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'period-btn';
+    btn.id = 'period-' + p.replace(/[^a-zA-Z0-9]/g, '_');
+    btn.innerHTML = `<div>${p}</div>`;
+    btn.onclick = () => selectPeriod(p);
+    container.appendChild(btn);
+  });
+}
+
+function selectPeriod(period) {
+  currentPeriod = period;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  const id = 'period-' + period.replace(/[^a-zA-Z0-9]/g, '_');
+  const btn = document.getElementById(id);
+  if (btn) btn.classList.add('active');
+
+  const note = document.getElementById('selectedPeriodNote');
+  note.textContent = `Submitting to: ${period}`;
+
+  const ind = document.getElementById('periodIndicator');
+  ind.textContent = period;
+  ind.style.display = 'inline-flex';
+
+  loadData();
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  txt.textContent = text;
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '') + ' show';
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function loadData() {
+  if (!currentPeriod) return;
+  setStatus('loading', 'Fetching data from Google Sheets...');
+
+  fetch(SCRIPT_URL)
+    .then(res => res.json())
+    .then(data => {
+      setStatus('ok', `Last updated: ${new Date().toLocaleTimeString()} · Auto-refresh every 10s`);
+      renderTable(data);
+    })
+    .catch(err => {
+      setStatus('', 'Connection error — retrying...');
+      renderError();
+    });
+}
+
+function renderTable(data) {
+  const container = document.getElementById('tableContainer');
+  const rows = data.slice(1).filter(row => row[1] === currentPeriod);
+
+  let sumMotor = 0, sumNonMotor = 0, sumLine = 0, sumOther = 0, sumTotal = 0;
+
+  if (rows.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div>No entries for <strong>${currentPeriod}</strong><br>Use the form to add the first entry.</div>`;
+    updateStats(0, 0, 0, 0);
+    return;
+  }
+
+  let html = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Date</th><th>Motorized</th><th>Non-Motorized</th><th>Line Maint.</th><th>Other</th><th>Total</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach(row => {
+    const [date, period, motor, nonMotor, line, other, total] = row;
+    const d = new Date(date);
+    const dateStr = isNaN(d) ? date : d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+    html += `<tr>
+      <td>${dateStr}</td>
+      <td>${Number(motor)||0}</td>
+      <td>${Number(nonMotor)||0}</td>
+      <td>${Number(line)||0}</td>
+      <td>${Number(other)||0}</td>
+      <td><strong>${Number(total)||0}</strong></td>
+    </tr>`;
+    sumMotor += Number(motor)||0;
+    sumNonMotor += Number(nonMotor)||0;
+    sumLine += Number(line)||0;
+    sumOther += Number(other)||0;
+    sumTotal += Number(total)||0;
+  });
+
+  html += `</tbody><tfoot>
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td>${sumMotor}</td><td>${sumNonMotor}</td><td>${sumLine}</td><td>${sumTotal - sumMotor - sumNonMotor - sumLine}</td><td>${sumTotal}</td>
+    </tr>
+  </tfoot></table></div>`;
+
+  container.innerHTML = html;
+  updateStats(sumMotor, sumNonMotor, sumLine, sumTotal);
+}
+
+function updateStats(motor, nonMotor, line, total) {
+  document.getElementById('totalMotorized').textContent = motor || '—';
+  document.getElementById('totalNonMotorized').textContent = nonMotor || '—';
+  document.getElementById('totalLine').textContent = line || '—';
+  document.getElementById('grandTotal').textContent = total || '—';
+}
+
+function renderError() {
+  const container = document.getElementById('tableContainer');
+  container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>Could not fetch data.<br>Check your connection or Google Sheets permissions.</div>`;
+}
+
+function submitOT() {
+  const date = document.getElementById('date').value;
+  const motorized = document.getElementById('motorized').value || 0;
+  const nonMotorized = document.getElementById('nonMotorized').value || 0;
+  const lineMaintenance = document.getElementById('lineMaintenance').value || 0;
+  const other = document.getElementById('other').value || 0;
+
+  if (!date) { showToast('Please select a date', true); return; }
+  if (!currentPeriod) { showToast('Please select a payroll period first', true); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ date, payrollPeriod: currentPeriod, motorized, nonMotorized, lineMaintenance, other })
+  })
+  .then(res => res.text())
+  .then(() => {
+    ['date','motorized','nonMotorized','lineMaintenance','other'].forEach(id => document.getElementById(id).value = '');
+    showToast('Entry submitted successfully');
+    loadData();
+  })
+  .catch(() => showToast('Submission failed — check connection', true))
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Submit Entry';
+  });
+}
+
+buildPeriodBoxes();
+setInterval(loadData, 10000);
+</script>
+</body>
+</html>
